@@ -25,7 +25,7 @@ typedef struct{
 
 typedef struct{
 	int cnt;
-	tsm_bytecode **bc;
+	tsm_bytecode *bc;
 }byte_code_t;
 
 typedef struct{

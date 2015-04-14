@@ -18,5 +18,6 @@ int fmbytes_concat_with_nlen(u8 *des,u8 len_size,fmBytes *src);
 int get_BERLen(u32 len,u8 *berlen);
 fmBool is_all_zero(u8 *buf,int len);
 int int2byteBE(int v,u8 *buf);
-
+void memset_int(void *mem,int val,int len);
+void memcpy_int(void *src,void *des,int len);
 #endif

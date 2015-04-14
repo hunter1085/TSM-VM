@@ -14,6 +14,13 @@
 #define PKG_REASON_BOOTSTRAP        0x01
 #define PKG_REASON_TO               0x02
 
+#define TAG_SESSION     0
+#define TAG_DLL         1
+#define TAG_SCRIPT      2
+#define TAG_AG_ID       3
+#define TAG_AG_NAME     4
+#define TAG_AG_R_FIFO   5
+#define TAG_AG_W_FIFO   6
 
 typedef enum {
 	MSG_CTRL = 0x00,
@@ -27,6 +34,13 @@ typedef struct{
 	list_t wpkg_list;
 	list_t ppkg_list;
 }tsm_router_t;
+
+typedef struct {
+	struct list_head entry;
+	u8 tag;
+	u16 len;
+	u8 *val;
+}router_tlv_t;
 
 typedef struct{
 	int cnt;

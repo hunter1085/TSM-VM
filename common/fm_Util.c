@@ -227,3 +227,19 @@ int hexstr_to_hex(fmBytes *hexstr,fmBytes *out)
 	fmBytes_set_length(out,len_in/2);
 	return 0;
 }
+void memset_int(void *mem,int val,int len)
+{
+    int i;
+
+	for(i = 0; i < len; i++){
+		*(int *)(mem+i) = val;
+	}
+}
+void memcpy_int(void *src,void *des,int len)
+{
+    int i;
+
+	for(i = 0; i < len; i++){
+		*(int *)(src+i) = *(int *)(des+i);
+	}
+}

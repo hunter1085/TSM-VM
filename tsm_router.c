@@ -13,9 +13,9 @@
 #include "./common/fm_Log.h"
 #include "./common/fm_Util.h"
 #include "./common/fm_Mem.h"
+#include "bc.h"
 #include "tsm_Err.h"
 #include "tsm_ccb.h"
-#include "tsm_bc.h"
 #include "tsm_vm.h"
 #include "tsm_router.h"
 
@@ -27,6 +27,52 @@ typedef struct{
 	int wfd;
 }agent_entry_t;
 
+LOCAL int router_create_fifo(char *fifo_name)
+{
+    int res;
+	if(access(fifo_name, F_OK) == -1){
+		res = mkfifo(fifo_name,0777);
+		if(res != 0){
+			FM_LOGE("Create agent read fifo failed!");
+			return -1;
+		}
+	}
+	return 0;
+}
+
+LOCAL agent_entry_t *router_register_agent(list_t *tlv)
+{
+    struct list_head *pos,*n;
+	router_tlv_t *node;
+	agent_entry_t *ae;
+
+    ae = (agent_entry_t *)fm_calloc(1,sizeof(agent_entry_t));
+	if(!ae) return NULL;
+	list_for_each_safe(pos,n,&tlv->head){
+		node = (router_tlv_t *)pos;
+		if(node->tag == TAG_AG_ID){
+			ae->agent_id = atoi(node->val);
+			continue;
+		}
+		if(node->tag == TAG_AG_NAME){
+			ae->name = (u8 *)fm_calloc(node->len+1,sizeof(char));
+			memcpy(ae->name,node->val,node->len);
+			continue;
+		}
+		/*agent write side is router read side*/
+		if(node->tag == TAG_AG_R_FIFO){
+			router_create_fifo(node->val);
+			ae->wfd = open(node->val,O_WRONLY);
+			continue;
+		}
+		if(node->tag == TAG_AG_W_FIFO){
+			router_create_fifo(node->val);
+			ae->rfd = open(node->val,O_RDONLY);
+			continue;
+		}
+	}
+	return ae;
+}
 
 LOCAL int router_get_des_wfd(int agent,list_t *agent_list)
 {
@@ -132,31 +178,31 @@ LOCAL pkg_entry_t *router_parse(int fd,tsm_router_t *router)
 	
 }
 
-LOCAL int router_ctrl_msg_handling(pkg_entry_t *pe,tsm_dev_t *tsm_dev)
+
+/*
+all tlv len is 2 byte
+*/
+LOCAL list_t *router_parse_tlv(u8 *str,int len)
 {
-	u8 ins;
-	u8 *start,*buf;
-	char *script;
-	int session;
-	tsm_ccb_t *CCB;
-	dl_array_t *dls;
+    int i;
+	list_t *tlv_list;
+	router_tlv_t *tlv;
 
-	if((!pe)||(!pe->data)) return FM_ROUTER_INVALID_PARM;
-	buf = fmBytes_get_buf(pe->data);
-	ins = buf[0];
-	start = buf[1];session = atoi(start);
-	switch(ins){
-		case 0:
-			
-		    CCB = ccb_create_ccb(&tsm_dev->bc_list,session,dls,script);
-			list_add_entry(&tsm_dev->ccb_list,&CCB->entry);
-			break;
-		default:
-			break;
+	tlv_list = (list_t *)fm_calloc(1,sizeof(list_t));
+	if(!tlv_list) return NULL;
+	list_init(tlv_list);
+
+	for(i = 0; i < len;){
+		tlv = (router_tlv_t *)fm_calloc(1,sizeof(router_tlv_t));
+		tlv->tag = str[i];
+		tlv->len = (str[i+1]<<8)|(str[i+2]);
+		tlv->val = (u8 *)fm_calloc(tlv->len,sizeof(u8));
+		memcpy(tlv->val,str+3,tlv->len);
+		i += tlv->len;
+		list_add_entry(tlv_list,&tlv->entry);
 	}
-	return 0;
+	return tlv_list;
 }
-
 PUBLIC void *router_aggregate_work(void* para)
 {
     tsm_dev_t *tsm_dev = (tsm_dev_t *)para;
@@ -174,12 +220,42 @@ PUBLIC void *router_aggregate_work(void* para)
         			if(pe->agent == AG_TOOL){
     					list_queue_tail(&router->ppkg_list,pe->entry);
         				sem_post(&tsm_dev->sem_probe);
-        			}else{/*msgs from both B-Agent and F-Agent are sent direct to VM*/
-        			    if(pe->msg_type == MSG_CTRL){
-                            router_ctrl_msg_handling(pe,tsm_dev);
-        			    }
+        			}else if(pe->msg_type == MSG_CTRL){
+                        	u8 ins;
+                        	u8 *buf;
+							int len;
+							
+							list_t *tlv;
+							
+                        	buf = fmBytes_get_buf(pe->data);
+							len = fmBytes_get_length(pe->data);
+                        	ins = buf[0];
+							tlv = router_parse_tlv(buf+1,len-1);
+							
+                        	switch(ins){
+                        		case 0://create ccb
+                        		{
+                        			tsm_ccb_t *CCB;
+                        		    CCB = ccb_create_ccb(&tsm_dev->bc_list,tlv);
+                        			list_add_entry(&tsm_dev->ccb_list,&CCB->entry);
+									list_queue_tail(&router->rpkg_list,pe->entry);
+									sem_post(&tsm_dev->sem_vm);
+                        		}
+                        			break;
+								case 1://register agent
+								{
+									agent_entry_t *ae;
+								    ae = router_register_agent(tlv);
+									monitor_add_event(&router->monitor,ae->rfd,EPOLLIN|EPOLLET);
+									list_add_entry(&router->agent_list,ae->entry);
+								}
+									break;
+                        		default:
+                        			break;
+                        	}
+        			}else{
         			    list_queue_tail(&router->rpkg_list,pe->entry);
-        			    sem_post(&tsm_dev->sem_vm);
+						sem_post(&tsm_dev->sem_vm);
         			}
     				
     			}
@@ -237,20 +313,8 @@ PUBLIC int router_init(tsm_cfg_t *cfg,tsm_router_t **rt)
     LOCK(cfg->ag_list.lock);
 	list_for_each_safe(pos,n,&cfg->ag_list.head){
 		agent = (agent_info_t *)pos;
-		if(access(agent->agent_r_fifo, F_OK) == -1){
-			res = mkfifo(agent->agent_r_fifo,0777);
-			if(res != 0){
-				FM_LOGE("Create agent read fifo failed!");
-				exit(EXIT_FAILURE);
-			}
-		}
-		if(access(agent->agent_w_fifo, F_OK) == -1){
-			res = mkfifo(agent->agent_w_fifo,0777);
-			if(res != 0){
-				FM_LOGE("Create agent write fifo failed!");
-				exit(EXIT_FAILURE);
-			}
-		}	
+		router_create_fifo(agent->agent_r_fifo);
+		router_create_fifo(agent->agent_w_fifo);
 
         /*agent write side is router read side*/
 		ae = (agent_entry_t *)fm_calloc(1,sizeof(agent_entry_t));

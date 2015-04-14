@@ -1,18 +1,27 @@
+#include "tsm_vm.h"
+#include "tsm_bcloader.h"
 #include "tsm_ccb.h"
 
 #define HASH_TABLE_DEFAULT_SIZE     64
 #define BYTE_CODE_DEFAULT_SIZE      512
 
+void ccb_bre_entry_value_del(fmBytes *v);
 void ccb_add_bc(bc_set_t *bcs,byte_code_t *bc)
 {
-    tsm_bytecode **bc;
-    while((bcs->base+bcs->cnt)>bc->cnt){
-		bc->bc = (tsm_bytecode **)fm_realloc(bc->bc,2*bc->cnt*sizeof(tsm_bytecode *));
-		memset(bc,tsm_reserve,2*bc->cnt*sizeof(tsm_bytecode *));
-		bc->cnt += bc->cnt;
-    }
+    tsm_bytecode *p;
+	int cnt;
 
-	memcpy(bc->bc+bcs->base,bc->bc,bc->cnt*sizeof(tsm_bytecode *));
+    cnt = bc->cnt;
+	while((bcs->base+bcs->cnt)>cnt){
+		cnt += (cnt>>1);/////1.5
+	}
+	p = (tsm_bytecode *)fm_calloc(cnt,sizeof(tsm_bytecode));
+	memset_int(p,tsm_reserve,cnt);
+	memcpy_int(p,bc->bc,bc->cnt);
+    memcpy_int(p+bc->cnt*sizeof(tsm_bytecode),bcs->bc,bcs->cnt);
+	fm_free(bc->bc);
+    bc->bc = p;
+	bc->cnt = cnt;
 }
 byte_code_t *ccb_alloc_bc()
 {
@@ -20,51 +29,66 @@ byte_code_t *ccb_alloc_bc()
 	bc = (byte_code_t *)fm_calloc(1,sizeof(byte_code_t));
 	if(!bc) return NULL;
 	bc->cnt = BYTE_CODE_DEFAULT_SIZE;
-	bc->bc  = (tsm_bytecode **)fm_calloc(BYTE_CODE_DEFAULT_SIZE,sizeof(tsm_bytecode *));
-	memset(bc->bc,tsm_reserve);
+	bc->bc  = (tsm_bytecode *)fm_calloc(BYTE_CODE_DEFAULT_SIZE,sizeof(tsm_bytecode));
+	memset_int(bc->bc,tsm_reserve,BYTE_CODE_DEFAULT_SIZE);
 	return bc;
 }
-tsm_ccb_t *ccb_create_ccb(list_t *bc_list,int session,dl_array_t * dls,char *script)
+tsm_ccb_t *ccb_create_ccb(list_t *bc_list,list_t *tlv)
 {
     char *dl;
     int i;
 	tsm_ccb_t *pCCB;
-	struct list_head *pos,*n;
+	struct list_head *pos,*n,*pos1,*n1;
 	bc_set_t *temp_set;
 	fmBool found;
+	router_tlv_t *node;
 		
 	pCCB = (tsm_ccb_t *)fm_calloc(1,sizeof(tsm_ccb_t));
 	if(!pCCB){
 		return NULL;
 	}
-	pCCB->session = session;
+	
 	pCCB->bre = zc_hashtable_new(HASH_TABLE_DEFAULT_SIZE,
 		            zc_hashtable_str_hash,
 		            zc_hashtable_str_equal,
 		            NULL,
 		            (zc_hashtable_del_fn)ccb_bre_entry_value_del);
-    pCCB->bc = ccb_alloc_bc();
-	for(i = 0; i < dls->cnt; i++){
-		dl = dls->dls[i];
+    
+	list_for_each_safe(pos, n,&tlv->head){
+		node = (router_tlv_t *)pos;
+		if(node->tag == TAG_SESSION){
+			pCCB->session = atoi(node->val);
+			break;
+		}
+	}
+	list_for_each_safe(pos, n,&tlv->head){
+		node = (router_tlv_t *)pos;
+		if(node->tag == TAG_SCRIPT){
+			pCCB->se = scloader_load(node->val);
+			break;
+		}
+	}
+	
+	pCCB->bc = ccb_alloc_bc();
+    list_for_each_safe(pos, n,&tlv->head){
 		found = fm_false;
-		list_for_each_safe(pos, n, &bc_list->head){
-			temp_set = (bc_set_t *)pos;
-			if(strcmp(temp_set->name,dl) == 0){
-				found = fm_true;
-				break;
+		node = (router_tlv_t *)pos;
+		if(node->tag == TAG_DLL){
+			list_for_each_safe(pos1, n1, &bc_list->head){
+				temp_set = (bc_set_t *)pos1;
+				if(strcmp(temp_set->name,dl) == 0){
+					found = fm_true;
+					break;
+				}
 			}
+    		if(!found){
+    		    temp_set = bcloader_load(dl,bc_list);
+    		}
+    		if(!temp_set){
+    		    ccb_add_bc(temp_set,pCCB->bc);
+    		}
 		}
-		if(!found){
-		    temp_set = bcloader_load(dl,bc_list);
-		}
-		if(!temp_set){
-		    ccb_add_bc(temp_set,pCCB->bc);
-		}
-	}
-
-	pCCB->se = scloader_load(script);
-	if(!pCCB->se){
-	}
+    }
 	return pCCB;
 }
 
@@ -163,4 +187,8 @@ void ccb_set_apdus(void *ccb,fmBytes_array_t *apdus)
     tsm_ccb_t *pCCB = (tsm_ccb_t *)ccb;
 	pCCB->apdus= apdus;
 }
-
+fmBytes *data_get_by_name(void *CCB,char *name)
+{
+    zc_hashtable_t *bre = ccb_get_bre(CCB);
+	return (fmBytes *)zc_hashtable_get(bre,name);
+}

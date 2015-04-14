@@ -8,6 +8,7 @@
 #include "tsm_Err.h"
 #include "tsm_ccb.h"
 #include "tsm_vm.h"
+#include "tsm_bcloader.h"
 
 #define DEF_BYCODE_SIZE     256
 #define DEF_BYCODE_SET_SIZE 32
@@ -92,7 +93,7 @@ LOCAL bc_set_t *byte_code_set_alloc(char *name,int base,int cnt)
 	memcpy(bc_set->name,name,strlen(name));
 	bc_set->base = base;
 	bc_set->cnt  = cnt;
-	bc_set->bc = (int *)fm_calloc(cnt,sizeof(tsm_bytecode *));
+	bc_set->bc = (int *)fm_calloc(cnt,sizeof(tsm_bytecode));
 	if(bc_set->bc == NULL){
 		fm_free(bc_set->name);
 		fm_free(bc_set);
@@ -203,28 +204,20 @@ LOCAL int bcloader_get_funcs_name(char *path,func_array_t *funcs)
 	return 0;
 }
 
-
-
-
-
-
 /*path should comply with linux convention,that is,begin with "lib",end with ".so",
 e.g /home/hzh/tsm/dlls/libtsm_bc_v1.so, and the header file is assume to be under 
 the same directory with so-file.
-The prefix of the byte code is assumed to be the class of the byte code,eg. 'gp' is 
-the class of gp_xx.
-Byte code in memory is put according to its kind,each 32 entries, if not all used,
-the rest are filled with "tsm_reserve"
+newly loaded dll will be add in the cache list,named bc_list
 */
 PUBLIC bc_set_t *bcloader_load(char *path,list_t *bc_list)
 {
-    int i,j;
+    int i,j,ret;
 	char libfile_name[128],hfile[512];
 	char *error,*name;
 	void *dl;
     tsm_bytecode *func;
 	func_array_t *fa = NULL;
-	bc_set_t *bc_set,ret;
+	bc_set_t *bc_set,*res;
 
     ret = bcloader_get_libfile_name(path,libfile_name,sizeof(libfile_name));
 	if(ret != 0) return NULL;
@@ -235,7 +228,10 @@ PUBLIC bc_set_t *bcloader_load(char *path,list_t *bc_list)
 	if(fa == NULL) return NULL;
 
 	ret = bcloader_get_funcs_name(hfile,fa);
-	if(ret != 0) goto err_handling;
+	if(ret != 0) {
+		res = NULL;
+		goto err_handling;
+	}
 
 	bc_set = byte_code_set_alloc(libfile_name,fa->base,fa->cnt);
 
@@ -245,7 +241,7 @@ PUBLIC bc_set_t *bcloader_load(char *path,list_t *bc_list)
         //printf("Failed load libary\n");
         error = dlerror();
     	//printf("%s\n", error);
-    	ret = NULL;
+    	res = NULL;
     	goto err_handling;
     }
 	
@@ -255,7 +251,7 @@ PUBLIC bc_set_t *bcloader_load(char *path,list_t *bc_list)
     	error = dlerror();
     	if(error != NULL){
     	    //printf("%s\n", error);
-    	    ret =  NULL;
+    	    res =  NULL;
 		    goto err_handling;
     	}
 
@@ -275,5 +271,5 @@ PUBLIC bc_set_t *bcloader_load(char *path,list_t *bc_list)
 	if(dl != NULL){
 		dlclose(dl);
 	}
-	return ret;
+	return res;
 }
