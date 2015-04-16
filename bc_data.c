@@ -2,6 +2,37 @@
 #include "./common/fm_hashtable.h"
 #include "bc_data.h"
 
+/*suppose p points at the start of A1,the function returns the raw data(not include A0 len seq
+and sw) at index=seq,if exist,otherwise,NULL*/
+LOCAL fmBytes *_get_Tag_A0_at(u8 *p,u8 seq)
+{
+    u8 *point,*end,*buf;
+	int len,num = 0;
+    fmBytes *data;
+	
+	len = _get_Tag_Ax_len(p);
+    point = _skip_Tag_Ax(p);
+	end = point + len;
+	
+	while(point < end){
+		if(*point == TAG_A0){
+			len = _get_Tag_Ax_len(point);
+			point = _skip_Tag_Ax(point);
+			if(*point == seq){
+				data = fmBytes_alloc(len-3);//not include seq and sw
+				buf = fmBytes_get_buf(data);
+				memcpy(buf,++point,len-3);
+				fmBytes_set_length(data,len-3);
+				return data;
+			}
+			point += len;
+		}else{
+		    break;
+		}
+	}
+	return NULL;
+	
+}
 /*
 assignment of data,format is as following:
 data_set,data0:name0,data1:name1
@@ -84,6 +115,8 @@ data_add_len,nameS0:nameD0,nameS1:nameD1
 */
 int data_add_len(void *CCB,fmBytes *rsp,fmBytes_array_t *arg)
 {
+    //for test now
+    return 5;
 }
 /*
 concat datas together,format as following:

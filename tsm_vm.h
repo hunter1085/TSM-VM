@@ -24,7 +24,6 @@ typedef struct {
 	list_t bc_list;
 }tsm_dev_t;
 
-PUBLIC int tsm_reserve();
 PUBLIC void *tsm_vm(void* para);
 
 #endif

@@ -243,3 +243,76 @@ void memcpy_int(void *src,void *des,int len)
 		*(int *)(src+i) = *(int *)(des+i);
 	}
 }
+
+/*
+Ax=A0/A1
+suppose p points at the start of the TLV
+*/
+int _get_Tag_Ax_len(u8 *p)
+{
+    int len;
+    p ++;//skip A1;
+	if(*p == 0xFF){
+		p++;
+		len = p[0]<<8|p[1];
+	}else{
+	    len = *p;
+	}
+	return len;
+}
+u8 *_skip_Tag_Ax(u8 *p)
+{
+	p ++;//skip A1;
+	if(*p == 0xFF){
+		p += 3;
+	}else{
+	    p ++;
+	}
+	return p;
+}
+
+int GetUnUseMem(u32 UseMask)
+{
+    u32    index = UseMask ;
+    //将第一个为1位的低位都置1，其它位都置0
+    index = (index-1)  &  ~index;
+    //得到有多少为1的位
+    index = index&0x55555555 + (index>>1)&0x55555555;  
+    index = index&0x33333333+ (index>>2)&0x33333333;
+    index = index&0x0F0F0F0F+ (index>>4)&0x0F0F0F0F;
+    index = index&0xFF + (index&0xFF00 >> 8) + (index&0xFF0000 >> 16) + (index&0xFF000000 >> 24);
+    //得到位数,如果为32则表示全0
+    return (int)(index);
+}
+/*find the first bit which is not zero,if not find,return 0*/
+int generic_ffs(int x)
+{ 
+    int r = 1; 
+    if (!x) 
+    return 0; 
+     
+    if (!(x & 0xffff)) { 
+    x >>= 16; 
+    r += 16; 
+    } 
+     
+    if (!(x & 0xff)) { 
+    x >>= 8; 
+    r += 8; 
+    } 
+     
+    if (!(x & 0xf)) { 
+      x >>= 4; 
+      r += 4; 
+    } 
+    if (!(x & 3)) { 
+      x >>= 2; 
+      r += 2; 
+    } 
+    if (!(x & 1)) { 
+      x >>= 1; 
+      r += 1; 
+     
+    } 
+  return r; 
+} 

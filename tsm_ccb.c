@@ -6,6 +6,14 @@
 #define BYTE_CODE_DEFAULT_SIZE      512
 
 void ccb_bre_entry_value_del(fmBytes *v);
+/*it is the inner byte code for reserve,
+  as it does not belong to any byte code class,
+  it is implemented here*/
+int tsm_reserve()
+{
+    return 0;
+}
+
 void ccb_add_bc(bc_set_t *bcs,byte_code_t *bc)
 {
     tsm_bytecode *p;

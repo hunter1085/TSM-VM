@@ -44,15 +44,6 @@ LOCAL code_entry_t *fetch_code_entry(int pc,script_entry_t *se)
 }
 
 
-/*it is the inner byte code for reserve,
-  as it does not belong to any byte code class,
-  it is implemented here*/
-PUBLIC int tsm_reserve()
-{
-    return 0;
-}
-
-
 PUBLIC void *tsm_vm(void* para)
 {
     struct list_head *entry;

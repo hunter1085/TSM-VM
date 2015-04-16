@@ -4,103 +4,6 @@
 #include "bc_rsp.h"
 
 
-
-/*
-Ax=A0/A1
-suppose p points at the start of the TLV
-*/
-LOCAL int _get_Tag_Ax_len(u8 *p)
-{
-    int len;
-    p ++;//skip A1;
-	if(*p == 0xFF){
-		p++;
-		len = p[0]<<8|p[1];
-	}else{
-	    len = *p;
-	}
-	return len;
-}
-LOCAL u8 *_skip_Tag_Ax(u8 *p)
-{
-	p ++;//skip A1;
-	if(*p == 0xFF){
-		p += 3;
-	}else{
-	    p ++;
-	}
-	return p;
-}
-/*suppose p points at the start of A0*/
-LOCAL u8 *_get_Tag_A0_data(u8 *p,fmBytes *out)
-{
-    fmBytes *ret;
-    u8 len;
-	
-	len = _get_Tag_Ax_len(p);
-	p = _skip_Tag_Ax(p);
-	p ++;//skip seq;
-	memcpy(fmBytes_get_buf(out),p,len-1);
-	fmBytes_set_length(out,len-1);
-	p += len-1;
-	return p;
-	
-}
-
-
-/*suppose p starts from A1*/
-LOCAL int _get_Tag_A0_num(u8 *p)
-{
-    u8 *point,*end;
-	int len,num = 0;
-	len = _get_Tag_Ax_len(p);
-    point = _skip_Tag_Ax(p);
-	end = point + len;
-	
-	while(point < end){
-		if(*point == TAG_A0){
-			num++;
-			point++;
-			len = *point;
-			point += len;
-		}else{
-		    break;
-		}
-	}
-	return num;
-}
-
-/*suppose p points at the start of A1,the function returns the raw data(not include A0 len seq
-and sw) at index=seq,if exist,otherwise,NULL*/
-LOCAL fmBytes *_get_Tag_A0_at(u8 *p,u8 seq)
-{
-    u8 *point,*end,*buf;
-	int len,num = 0;
-    fmBytes *data;
-	
-	len = _get_Tag_Ax_len(p);
-    point = _skip_Tag_Ax(p);
-	end = point + len;
-	
-	while(point < end){
-		if(*point == TAG_A0){
-			len = _get_Tag_Ax_len(point);
-			point = _skip_Tag_Ax(point);
-			if(*point == seq){
-				data = fmBytes_alloc(len-3);//not include seq and sw
-				buf = fmBytes_get_buf(data);
-				memcpy(buf,++point,len-3);
-				fmBytes_set_length(data,len-3);
-				return data;
-			}
-			point += len;
-		}else{
-		    break;
-		}
-	}
-	return NULL;
-	
-}
 LOCAL fmBool _rsp_test_tail(fmBytes *rsp,fmBytes *exp_buf)
 {
     u8 *p0,*end,str0;
@@ -143,9 +46,6 @@ LOCAL int _rsp_test_head(fmBytes *rsp,fmBytes *exp_buf)
 	}
 	return fm_true;
 }
-
-
-
 
 /****************************************************************************/
 
@@ -278,6 +178,7 @@ int rsp_is_card_active_je(void *CCB,fmBytes *rsp,fmBytes_array_t *arg)
 	return 0;
 }
 
+#if 0
 /*
                               ins(4)  parm0(lv)  parm1(lv) parm2(lv)
 request for install param:    0       DB-ID       app_aid  seid
@@ -346,3 +247,4 @@ int kms_requset(void *CCB,fmBytes *rsp,fmBytes_array_t *arg)
 	return 0;
 }
 
+#endif

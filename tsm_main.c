@@ -23,7 +23,7 @@
 
 tsm_dev_t *tsm_dev;
 static __thread int g_bSuspend;  
-
+#if 0
 
 void suspend_handler(int signum)  
 {  
@@ -74,11 +74,38 @@ void tsm_probe_loop()
 		}
 	}
 }
+#endif
 
+
+#include "tsm_bcloader.h"
 int main(int argc,char *argv[])
 {
-    
-#if 1
+#if 0
+    int i;
+	char *path[]={"libbc_gp.so","libbc_data.so","libbc_rsp.so"};
+    bc_set_t *bcs,*node;
+	list_t bcs_list;
+	struct list_head *pos,*n;
+	
+    fmLog_init("./zlog.conf");
+	
+    FM_LOGD("begin");
+	
+	list_init(&bcs_list);
+    for(i = 0; i < 3; i++){
+		bcloader_load(path[i],&bcs_list);
+    }
+	list_for_each_safe(pos, n, &bcs_list.head){
+		node = (bc_set_t *)pos;
+		FM_LOGD("node->name=%s",node->name);
+		FM_LOGD("node->base=%d",node->base);
+		FM_LOGD("node->cnt=%d",node->cnt);
+		for(i = 0; i < node->cnt; i++){
+			FM_LOGD("bc[%d]=%p",i,node->bc[i]);
+		}
+	}
+#endif
+#if 0
     int i,ret;
     struct sigaction suspendsa = {0};  
     struct sigaction resumesa = {0}; 

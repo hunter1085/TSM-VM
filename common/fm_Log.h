@@ -16,5 +16,8 @@ void fmLog_fini();
 #define FM_LOGE(format, args...)     \
 	zlog(log_category, __FILE__, sizeof(__FILE__)-1, __func__, sizeof(__func__)-1, __LINE__, \
 	ZLOG_LEVEL_ERROR, format, ##args)
-	
+
+#define FM_LOGH(buf, buf_len)	\
+	hzlog(log_category, __FILE__, sizeof(__FILE__)-1, __func__, sizeof(__func__)-1, __LINE__, \
+	ZLOG_LEVEL_INFO, buf, buf_len)
 #endif

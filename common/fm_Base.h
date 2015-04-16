@@ -38,6 +38,8 @@
 #define BIT30    0x40000000
 #define BIT31    0x80000000
 
+#define BITS_PER_LONG    32
+
 #define PUBLIC
 #define LOCAL static
 
@@ -54,6 +56,8 @@ typedef pthread_mutex_t lock_t;
 #define STRNCMP(_a_,_C_,_b_,_n_) ( strncmp(_a_,_b_,_n_) _C_ 0 )
 #define STRICMP(_a_,_C_,_b_) ( strcasecmp(_a_,_b_) _C_ 0 )
 #define STRNICMP(_a_,_C_,_b_,_n_) ( strncasecmp(_a_,_b_,_n_) _C_ 0 )
+#define set_bit(x,b) (x) |= (1U<<(b))
+#define clear_bit(x,b) (x) &= ~(1U<<(b))
 
 typedef enum {
 	fm_false = 0,

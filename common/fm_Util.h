@@ -20,4 +20,7 @@ fmBool is_all_zero(u8 *buf,int len);
 int int2byteBE(int v,u8 *buf);
 void memset_int(void *mem,int val,int len);
 void memcpy_int(void *src,void *des,int len);
+int _get_Tag_Ax_len(u8 *p);
+u8 *_skip_Tag_Ax(u8 *p);
+int generic_ffs(int x);
 #endif
