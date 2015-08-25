@@ -1,4 +1,5 @@
 #include "fm_Bytes.h"
+#include "fm_Log.h"
 
 LOCAL void fmBytes_set_size(fmBytes *p,int size)
 {
@@ -60,6 +61,22 @@ PUBLIC int fmBytes_copy(fmBytes *des,int offset1,fmBytes *src,int offset2,int le
 	return 0;
 }
 
+PUBLIC int fmBytes_copy_from(fmBytes *des,int offset1,u8 *src,int offset2,int len)
+{
+    u8 *des_buf;
+
+	if((src == NULL) || (des == NULL)) return -1;
+	if((fmBytes_get_buf(des) == NULL)) return -1;
+	if((fmBytes_get_size(des)-offset1) < len) return -1;
+
+	
+
+	des_buf = fmBytes_get_buf(des); des_buf += offset1;
+	memcpy(des_buf,src+offset2,len);
+	fmBytes_set_length(des,fmBytes_get_length(des)+len);
+	return 0;
+}
+
 PUBLIC fmBool fmBytes_compare(fmBytes *p1,int offset1,
 	fmBytes *p2,int offset2,int len)
 {
@@ -100,7 +117,7 @@ PUBLIC int fmBytes_get_length(fmBytes *p)
 
 PUBLIC void fmBytes_set_length(fmBytes *p,int len)
 {
-    p->leng = len = 0;
+    p->leng = len = len;
 }
 
 PUBLIC int fmBytes2intBE(fmBytes *p)
@@ -121,10 +138,40 @@ PUBLIC fmBytes_array_t *fmBytes_array_alloc(int size)
 	p = fm_calloc(1,sizeof(fmBytes_array_t));
 	if(!p)return NULL;
 	p->size = size;
+	p->cnt  = 0;
 	p->array= fm_calloc(size,sizeof(fmBytes *));
 	if(!p->array){
 		fm_free(p);
 		return NULL;
 	}
 	return p;
+}
+
+PUBLIC void fmBytes_array_free(fmBytes_array_t *fba)
+{
+    int i;
+    if(!fba) return;
+
+	for(i = 0; i < fba->cnt; i++){
+		fmBytes_free(fba->array[i]);
+	}
+	fm_free(fba);
+}
+
+PUBLIC fmBytes_array_t *fmBytes_array_resize(fmBytes_array_t *old_fba,int new_size)
+{
+    int i,old_size;
+	fmBytes_array_t *new_fba;
+
+    old_size = old_fba->size;
+	if(new_size <= old_size)return old_fba;
+
+	new_fba = fmBytes_array_alloc(new_size);
+	if(!new_fba) return old_fba;
+
+	new_fba->cnt = old_fba->cnt;
+	for(i = 0; i < old_fba->cnt; i++){
+		new_fba->array[i] = old_fba->array[i];
+	}
+	return new_fba;
 }

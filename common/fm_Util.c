@@ -316,3 +316,23 @@ int generic_ffs(int x)
     } 
   return r; 
 } 
+
+int get_filename_from_path(char *path,char *name,int size)
+{
+    int index;
+	char *start,*end;
+
+    if((path == NULL) || (name == NULL)) return -1;
+	
+    index = last_index_of(path,'/');
+	if(index == -1){
+		if(strlen(path)>size) return -1;
+		strcpy(name,path);
+		return 0;
+	}
+	start = path+index+1;
+	end = path + strlen(path);
+	if((end-start)>size) return -1;
+	memcpy(name,start,end-start);
+	return 0;
+}

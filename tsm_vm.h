@@ -7,6 +7,9 @@
 #include "tsm_cfg.h"
 #include "tsm_router.h"
 
+#define TAG_A0          0xA0
+#define TAG_A1          0xA1
+
 #define TSM_THREAD_NUM  5
 typedef struct {
     pthread_t thrd_router_r;

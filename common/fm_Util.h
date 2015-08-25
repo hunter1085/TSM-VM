@@ -23,4 +23,5 @@ void memcpy_int(void *src,void *des,int len);
 int _get_Tag_Ax_len(u8 *p);
 u8 *_skip_Tag_Ax(u8 *p);
 int generic_ffs(int x);
+int get_filename_from_path(char *path,char *name,int size);
 #endif

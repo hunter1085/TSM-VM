@@ -105,6 +105,35 @@ int main(int argc,char *argv[])
 		}
 	}
 #endif
+
+#if 1
+    int i,j;
+    char *path="./fm1280.sc";
+    script_entry_t *se;
+	code_entry_t *ce;
+
+	fmLog_init("./zlog.conf");
+
+
+
+	
+    se = scloader_load(path);
+	FM_LOGD("sc-name:%s",se->name);
+	FM_LOGD("sc-size:%d",se->size);
+	FM_LOGD("sc-codenum:%d",se->code_num);
+	for(i = 0; i < se->code_num; i++){
+		ce = se->ces[i];
+		FM_LOGD("addr:%d,code:%d",ce->addr,ce->code);
+		if(ce->parameters != NULL){
+			FM_LOGD("parm-cnt:%d",ce->parameters->cnt);
+    		for(j = 0; j < ce->parameters->cnt;j++){
+    			FM_LOGD("parm[%d]:",j);
+    			FM_LOGH(ce->parameters->array[j]->buf,ce->parameters->array[j]->leng);
+    		}
+		}
+	}
+
+#endif
 #if 0
     int i,ret;
     struct sigaction suspendsa = {0};  

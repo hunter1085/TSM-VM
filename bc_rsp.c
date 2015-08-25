@@ -4,45 +4,28 @@
 #include "bc_rsp.h"
 
 
-LOCAL fmBool _rsp_test_tail(fmBytes *rsp,fmBytes *exp_buf)
+LOCAL fmBool _rsp_test_tail(fmBytes_array_t *rsp,fmBytes *exp_buf)
 {
-    u8 *p0,*end,str0;
-	u8 len,len0;
+    int i,offset,len;
+	fmBytes *frag;
 
-	str0 = fmBytes_get_buf(exp_buf);
-	len0 = fmBytes_get_length(exp_buf);
-	p0 = fmBytes_get_buf(rsp);
-	end = p0 + fmBytes_get_length(rsp);
-	p0 = _skip_Tag_Ax(p0);
-
-	while(p0 < end){
-		len = _get_Tag_Ax_len(p0);
-		p0 = _skip_Tag_Ax(p0);
-        p0 ++; //skip seq
-    	p0 += (len - len0);
-        if(memcmp(p0,str0,len0) != 0) return fm_false;
-		p0 += len0;
+	for(i = 0; i < rsp->cnt; i++){
+		frag = rsp->array[i];
+		len = fmBytes_get_length(exp_buf);
+		offset = fmBytes_get_length(frag)-len;
+		if(fmBytes_compare(frag,offset,exp_buf,0,len)==fm_false)return fm_false;
 	}
 	return fm_true;
-	
 }
-LOCAL int _rsp_test_head(fmBytes *rsp,fmBytes *exp_buf)
+LOCAL int _rsp_test_head(fmBytes_array_t *rsp,fmBytes *exp_buf)
 {
-    u8 *p0,*end,str0;
-	u8 len,len0;
+    int i,len;
+	fmBytes *frag;
 
-	str0 = fmBytes_get_buf(exp_buf);
-	len0 = fmBytes_get_length(exp_buf);
-	p0 = fmBytes_get_buf(rsp);
-	end = p0 + fmBytes_get_length(rsp);
-	p0 = _skip_Tag_Ax(p0);
-
-	while(p0 < end){
-		len = _get_Tag_Ax_len(p0);
-		p0 = _skip_Tag_Ax(p0);
-        p0 ++; //skip seq
-        if(memcmp(p0,str0,len0) != 0) return fm_false;
-		p0 += len0-1;
+	for(i = 0; i < rsp->cnt; i++){
+		frag = rsp->array[i];
+		len = fmBytes_get_length(exp_buf);
+		if(fmBytes_compare(frag,0,exp_buf,0,len)==fm_false)return fm_false;
 	}
 	return fm_true;
 }
@@ -50,7 +33,7 @@ LOCAL int _rsp_test_head(fmBytes *rsp,fmBytes *exp_buf)
 /****************************************************************************/
 
 
-int rsp_test_tail_jne(void *CCB,fmBytes *rsp,fmBytes_array_t *arg)
+int rsp_test_tail_jne(void *CCB,fmBytes_array_t *rsp,fmBytes_array_t *arg)
 {
     int addr;
     fmBytes *exp_buf,*addr_buf;
@@ -66,7 +49,7 @@ int rsp_test_tail_jne(void *CCB,fmBytes *rsp,fmBytes_array_t *arg)
 	return 0;
 }
 
-int rsp_test_tail_je(void *CCB,fmBytes *rsp,fmBytes_array_t *arg)
+int rsp_test_tail_je(void *CCB,fmBytes_array_t *rsp,fmBytes_array_t *arg)
 {
     int addr;
     fmBytes *exp_buf,*addr_buf;
@@ -82,7 +65,7 @@ int rsp_test_tail_je(void *CCB,fmBytes *rsp,fmBytes_array_t *arg)
 	return 0;
 }
 
-int rsp_test_head_jne(void *CCB,fmBytes *rsp,fmBytes_array_t *arg)
+int rsp_test_head_jne(void *CCB,fmBytes_array_t *rsp,fmBytes_array_t *arg)
 {
     int addr;
     fmBytes *exp_buf,*addr_buf;
@@ -98,7 +81,7 @@ int rsp_test_head_jne(void *CCB,fmBytes *rsp,fmBytes_array_t *arg)
 	return 0;
 }
 
-int rsp_test_head_je(void *CCB,fmBytes *rsp,fmBytes_array_t *arg)
+int rsp_test_head_je(void *CCB,fmBytes_array_t *rsp,fmBytes_array_t *arg)
 {
     int addr;
     fmBytes *exp_buf,*addr_buf;
@@ -114,7 +97,7 @@ int rsp_test_head_je(void *CCB,fmBytes *rsp,fmBytes_array_t *arg)
 	return 0;
 }
 
-int rsp_is_scp02_ok(void *CCB,fmBytes *rsp,fmBytes_array_t *arg)
+int rsp_is_scp02_ok(void *CCB,fmBytes_array_t *rsp,fmBytes_array_t *arg)
 {
     int addr;
 	fmBytes *addr_buf = arg->array[0];
@@ -127,16 +110,17 @@ int rsp_is_scp02_ok(void *CCB,fmBytes *rsp,fmBytes_array_t *arg)
 	}
 	return 0;
 }
-int rsp_is_app_exit_je(void *CCB,fmBytes *rsp,fmBytes_array_t *arg)
+int rsp_is_app_exsit_je(void *CCB,fmBytes_array_t *rsp,fmBytes_array_t *arg)
 {
     u8 *str,*aid_str;
 	int len,aid_len,addr;
     fmBytes *app_aid = arg->array[0];
     fmBytes *addr_buf = arg->array[1];
+	fmBytes *resp = rsp->array[0];
 
-    str = fmBytes_get_buf(rsp);
+    str = fmBytes_get_buf(resp);
 	aid_str = fmBytes_get_buf(app_aid);
-	len = fmBytes_get_length(rsp);
+	len = fmBytes_get_length(resp);
 	aid_len = fmBytes_get_length(app_aid);
 	addr = fmBytes2intBE(addr_buf);    
 	if(fm_strstr(str,len,aid_str,aid_len) != NULL){
@@ -145,15 +129,16 @@ int rsp_is_app_exit_je(void *CCB,fmBytes *rsp,fmBytes_array_t *arg)
 	return 0;
 }
 
-int rsp_is_personalized_je(void *CCB,fmBytes *rsp,fmBytes_array_t *arg)
+int rsp_is_personalized_je(void *CCB,fmBytes_array_t *rsp,fmBytes_array_t *arg)
 {
     u8 *p,*end;
 	int addr;
 	fmBytes *addr_buf = arg->array[0];
-	addr = fmBytes2intBE(addr_buf);    
+	fmBytes *resp = rsp->array[0];
 	
-    p = fmBytes_get_buf(rsp);
-	end = p + fmBytes_get_length(rsp);
+	addr = fmBytes2intBE(addr_buf);    
+    p = fmBytes_get_buf(resp);
+	end = p + fmBytes_get_length(resp);
 	p ++;//skip A3
 	(*p == 0xFF)?(p+=3):(p++);//skip len
 	p += 3;//skip A2 len seq
@@ -162,16 +147,17 @@ int rsp_is_personalized_je(void *CCB,fmBytes *rsp,fmBytes_array_t *arg)
     }
 	return 0;
 }
-int rsp_is_card_active_je(void *CCB,fmBytes *rsp,fmBytes_array_t *arg)
+int rsp_is_card_active_je(void *CCB,fmBytes_array_t *rsp,fmBytes_array_t *arg)
 {
 	int addr,len0;
 	u8 *str0;
 	u8 ack[]={0x66,0x10};
 	fmBytes *addr_buf = arg->array[0];
+	fmBytes *resp = rsp->array[0];
+	
 	addr = fmBytes2intBE(addr_buf);    
-
-    str0 = fmBytes_get_buf(rsp);
-	len0 = fmBytes_get_length(rsp);
+    str0 = fmBytes_get_buf(resp);
+	len0 = fmBytes_get_length(resp);
 	if(!fm_strstr(str0,len0,ack,sizeof(ack))){
 		ccb_set_PC(CCB,addr);
 	}

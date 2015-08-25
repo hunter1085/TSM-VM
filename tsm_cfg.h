@@ -12,6 +12,7 @@ typedef struct {
 }agent_info_t;
 
 typedef struct {
+	int port;
 	int bc_parm_max;
 	int bc_class_num;
 	int bc_class_room;

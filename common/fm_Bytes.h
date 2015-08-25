@@ -9,7 +9,8 @@ typedef struct _fmBytes{
 
 typedef struct
 {
-    int size;
+    int size;//array size
+	int cnt;//actual num
 	fmBytes **array;
 }fmBytes_array_t;
 
@@ -23,6 +24,7 @@ PUBLIC fmBytes *fmBytes_alloc(int size);
 PUBLIC void fmBytes_free(fmBytes *p);
 PUBLIC fmBool fmBytes_is_zeros(fmBytes *p,int offset,int len);
 PUBLIC int fmBytes_copy(fmBytes *des,int offset1,fmBytes *src,int offset2,int len);
+PUBLIC int fmBytes_copy_from(fmBytes *des,int offset1,u8 *src,int offset2,int len);
 PUBLIC fmBool fmBytes_compare_at(fmBytes *p1,int offset1,
 	fmBytes *p2,int offset2,int len);
 PUBLIC u8 *fmBytes_get_buf(fmBytes *p);

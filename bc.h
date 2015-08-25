@@ -1,10 +1,11 @@
 #ifndef _BC_H_
 #define _BC_H_
 
-#define MAX_APDU_LEN    256
+#define MAX_APDU_LEN        300
+#define TAG_A1_HEAD_ROOM    4   //A1-len,len may cost 3Bytes
+#define TAG_A0_HEAD_ROOM    3   //A0-len-seq
 
-#define TAG_A0          0xA0
-#define TAG_A1          0xA1
+
 
 typedef enum {
 	AG_BUSINESS = 0x00,

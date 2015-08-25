@@ -14,7 +14,7 @@
 #ifndef _LINUX_SKBUFF_H
 #define _LINUX_SKBUFF_H
 
-
+#include "fm_Bytes.h"
 
 struct sk_buff_head {
 	struct sk_buff	*next;
@@ -28,6 +28,13 @@ struct sk_buff {
 	/* These two members must be first. */
 	struct sk_buff		*next;
 	struct sk_buff		*prev;
+
+	int index;  //for mem-leakage debug
+	fmBool isNew;
+	int session;
+	int msg_type;
+	int reason;
+	fmBytes *agent;
 
     unsigned char        resend_idx; /*record the re-send times*/
 
@@ -43,7 +50,7 @@ struct sk_buff {
 	unsigned char		*head;
     unsigned char       *data;
 
-	int index;  //for mem-leakage debug
+
 };
 
 #define skb_queue_walk(queue, skb) \

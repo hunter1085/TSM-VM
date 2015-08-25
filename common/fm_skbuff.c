@@ -264,6 +264,10 @@ void kfree_skb(struct sk_buff *skb)
         skb->buff = NULL;
     }
 
+	if(skb->agent != NULL){
+		fmBytes_free(skb->agent);
+	}
+
     //FM_LOGD("skb free skb");
     fm_free(skb);
     skb = NULL;

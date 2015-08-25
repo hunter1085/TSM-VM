@@ -110,25 +110,6 @@ LOCAL void byte_code_set_free(bc_set_t *bc_set)
 	fm_free(bc_set);
 }
 
-LOCAL int bcloader_get_libfile_name(char *path,char *name,int size)
-{
-    int index;
-	char *start,*end;
-
-    if((path == NULL) || (name == NULL)) return -1;
-	
-    index = last_index_of(path,'/');
-	if(index == -1){
-		if(strlen(path)>size) return -1;
-		strcpy(name,path);
-		return 0;
-	}
-	start = path+index+1;
-	end = path + strlen(path);
-	if((end-start)>size) return -1;
-	memcpy(name,start,end-start);
-	return 0;
-}
 /*Note:we get hfile name form from libname*/
 LOCAL int bcloader_get_hfile_name(char *libname,char *name)
 {
@@ -241,7 +222,7 @@ PUBLIC bc_set_t *bcloader_load(char *path,list_t *bcs_list)
 	memset(hfile,0,sizeof(hfile));
 	memset(hpath,0,sizeof(hpath));
 
-    ret = bcloader_get_libfile_name(path,libfile_name,sizeof(libfile_name));
+    ret = get_filename_from_path(path,libfile_name,sizeof(libfile_name));
 	if(ret != 0) return NULL;
 	FM_LOGD("libname=%s",libfile_name);
 	ret = bcloader_get_hfile_name(libfile_name,hfile);

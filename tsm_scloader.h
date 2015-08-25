@@ -4,14 +4,19 @@
 #include "./common/fm_List.h"
 #include "./common/fm_Bytes.h"
 
-#define MAX_PARM_NUM        20
 
 typedef struct{
-	struct list_head node;
 	int addr;
     int code;
-	fmBytes_array_t parameters;
+	fmBytes_array_t *parameters;
 }code_entry_t;
+
+typedef struct{
+	char *name;
+	int size;
+	int code_num;
+	code_entry_t **ces;
+}script_entry_t;
 
 PUBLIC script_entry_t *scloader_load(char *path);
 #endif

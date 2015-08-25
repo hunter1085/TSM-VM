@@ -7,32 +7,43 @@
 #include "./common/fm_Base.h"
 #include "./common/fm_Bytes.h"
 #include "./common/fm_Monitor.h"
+#include "./common/fm_skbuff.h"
 #include "tsm_cfg.h"
 
+#define MSG_HEAD_LEN                12
 
 #define PKG_REASON_NORMAL           0x00
 #define PKG_REASON_BOOTSTRAP        0x01
 #define PKG_REASON_TO               0x02
 
-#define TAG_SESSION     0
-#define TAG_DLL         1
-#define TAG_SCRIPT      2
-#define TAG_AG_ID       3
-#define TAG_AG_NAME     4
-#define TAG_AG_R_FIFO   5
-#define TAG_AG_W_FIFO   6
+#define TAG_SESSION     0x10
+#define TAG_DLL         0x11
+#define TAG_SCRIPT      0x12
+#define TAG_AG_NAME     0x13
+
+#define INS_CREATE_CCB      0
+#define INS_REG_AGENT       2
+#define INS_UNREG_AGENT     4
+
+#define ACK_REG_AGENT       3
+
+
+
 
 typedef enum {
-	MSG_CTRL = 0x00,
-	MSG_DATA = 0x80,
+	MSG_CTRL = 0x01,
+	MSG_DATA = 0x02,
 }msg_type_t;
+
+
 
 typedef struct{
 	epoll_monitor_t monitor;
+	int server;
 	list_t agent_list;
-	list_t rpkg_list;
-	list_t wpkg_list;
-	list_t ppkg_list;
+	struct sk_buff_head rpkg_list;
+	struct sk_buff_head wpkg_list;
+	struct sk_buff_head ppkg_list;
 }tsm_router_t;
 
 typedef struct {

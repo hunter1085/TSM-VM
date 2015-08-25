@@ -55,6 +55,9 @@ tsm_ccb_t *ccb_create_ccb(list_t *bc_list,list_t *tlv)
 	if(!pCCB){
 		return NULL;
 	}
+
+    skb_queue_head_init(&pCCB->apduQ);
+	skb_queue_head_init(&pCCB->cmdQ);
 	
 	pCCB->bre = zc_hashtable_new(HASH_TABLE_DEFAULT_SIZE,
 		            zc_hashtable_str_hash,
@@ -142,22 +145,6 @@ void ccb_set_bootstrap(void *ccb,int result)
     tsm_ccb_t *pCCB = (tsm_ccb_t *)ccb;
 	pCCB->bootstrap = result;
 }
-pkg_entry_t *ccb_get_out_pkg(void *ccb)
-{
-    tsm_ccb_t *pCCB = (tsm_ccb_t *)ccb;
-	return pCCB->out;
-}
-void ccb_set_out_pkg(void *ccb,pkg_entry_t *out)
-{
-    tsm_ccb_t *pCCB = (tsm_ccb_t *)ccb;
-	pCCB->out = out;
-}
-fmBytes *ccb_get_out_data(void *CCB)
-{
-    tsm_ccb_t *pCCB = (tsm_ccb_t *)CCB;
-	pkg_entry_t *pe = pCCB->out;
-	return pe->data;
-}
 byte_code_t *ccb_get_bytecode(void *ccb)
 {
     tsm_ccb_t *pCCB = (tsm_ccb_t *)ccb;
@@ -179,22 +166,17 @@ zc_hashtable_t *ccb_get_bre(void *ccb)
     tsm_ccb_t *pCCB = (tsm_ccb_t *)ccb;
 	return pCCB->bre;
 }
+struct sk_buff_head *ccb_get_apduQ(void *ccb)
+{
+    tsm_ccb_t *pCCB = (tsm_ccb_t *)ccb;
+	return &pCCB->apduQ;
+}
+struct sk_buff_head *ccb_get_cmdQ(void *ccb)
+{
+    tsm_ccb_t *pCCB = (tsm_ccb_t *)ccb;
+	return &pCCB->cmdQ;
+}
 
-void ccb_set_dest(void *ccb,int dest)
-{
-    tsm_ccb_t *pCCB = (tsm_ccb_t *)ccb;
-	pCCB->out->agent = dest;
-}
-fmBytes_array_t *ccb_get_apdus(void *ccb)
-{
-    tsm_ccb_t *pCCB = (tsm_ccb_t *)ccb;
-	return pCCB->apdus;
-}
-void ccb_set_apdus(void *ccb,fmBytes_array_t *apdus)
-{
-    tsm_ccb_t *pCCB = (tsm_ccb_t *)ccb;
-	pCCB->apdus= apdus;
-}
 fmBytes *data_get_by_name(void *CCB,char *name)
 {
     zc_hashtable_t *bre = ccb_get_bre(CCB);
